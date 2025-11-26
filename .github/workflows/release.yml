@@ -21,17 +21,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache: true
 
       - name: Get version
         id: version
         run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-
-      - name: Debug workspace
-        run: |
-          pwd
-          ls -la
-          ls -la cmd/
-          ls -la cmd/gitlab-tools/ || echo "cmd/gitlab-tools not found"
 
       - name: Build for multiple platforms
         run: |

@@ -19,14 +19,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
-      - name: Cache Go modules
-        uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          cache: true
 
       - name: Install dependencies
         run: go mod download
@@ -56,6 +49,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache: true
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
@@ -79,6 +73,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
+          cache: true
 
       - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
         run: |
