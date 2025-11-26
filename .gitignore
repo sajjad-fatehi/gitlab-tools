@@ -1,0 +1,36 @@
+# Binaries
+gitlab-tools
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+
+# Environment variables
+.env
+
+# Release artifacts
+dist/
+*.tar.gz
+*.zip
