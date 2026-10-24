@@ -81,7 +81,7 @@ func bulkMRCommand() {
 	origin := fs.String("origin", "", "Origin (source) branch name (required)")
 	target := fs.String("target", "", "Target branch name (required)")
 	gitlabURL := fs.String("gitlab-url", os.Getenv("GITLAB_BASE_URL"), "GitLab base URL (default: GITLAB_BASE_URL env)")
-	token := fs.String("token", os.Getenv("GITLAB_TOKEN"), "GitLab API token (default: GITLAB_TOKEN env)")
+	token := fs.String("token", "", "GitLab API token (default: GITLAB_TOKEN env)")
 	group := fs.String("group", "", "Default group/namespace prefix (optional)")
 	title := fs.String("title", "", "Merge request title (default: \"Merge <origin> into <target>\")")
 	description := fs.String("description", "", "Merge request description (default: auto-generated)")
@@ -139,6 +139,10 @@ func bulkMRCommand() {
 		fmt.Fprintln(os.Stderr, "Error: GitLab URL must be provided via --gitlab-url or GITLAB_BASE_URL env")
 		fs.Usage()
 		os.Exit(1)
+	}
+
+	if *token == "" {
+		*token = os.Getenv("GITLAB_TOKEN")
 	}
 
 	if *token == "" {
@@ -246,7 +250,7 @@ func topicsCommand() {
 	fs := flag.NewFlagSet("topics", flag.ExitOnError)
 
 	gitlabURL := fs.String("gitlab-url", os.Getenv("GITLAB_BASE_URL"), "GitLab base URL (default: GITLAB_BASE_URL env)")
-	token := fs.String("token", os.Getenv("GITLAB_TOKEN"), "GitLab API token (default: GITLAB_TOKEN env)")
+	token := fs.String("token", "", "GitLab API token (default: GITLAB_TOKEN env)")
 	perPage := fs.Int("per-page", 50, "Number of topics per page")
 	page := fs.Int("page", 1, "Page number")
 	verbose := fs.Bool("verbose", false, "Enable verbose logging")
@@ -283,6 +287,10 @@ func topicsCommand() {
 	}
 
 	if *token == "" {
+		*token = os.Getenv("GITLAB_TOKEN")
+	}
+
+	if *token == "" {
 		fmt.Fprintln(os.Stderr, "Error: GitLab token must be provided via --token or GITLAB_TOKEN env")
 		fs.Usage()
 		os.Exit(1)
@@ -302,7 +310,7 @@ func projectsCommand() {
 	fs := flag.NewFlagSet("projects", flag.ExitOnError)
 
 	gitlabURL := fs.String("gitlab-url", os.Getenv("GITLAB_BASE_URL"), "GitLab base URL (default: GITLAB_BASE_URL env)")
-	token := fs.String("token", os.Getenv("GITLAB_TOKEN"), "GitLab API token (default: GITLAB_TOKEN env)")
+	token := fs.String("token", "", "GitLab API token (default: GITLAB_TOKEN env)")
 	topic := fs.String("topic", "", "Topic name (required)")
 	perPage := fs.Int("per-page", 50, "Number of projects per page")
 	page := fs.Int("page", 1, "Page number")
@@ -343,6 +351,10 @@ func projectsCommand() {
 		fmt.Fprintln(os.Stderr, "Error: GitLab URL must be provided via --gitlab-url or GITLAB_BASE_URL env")
 		fs.Usage()
 		os.Exit(1)
+	}
+
+	if *token == "" {
+		*token = os.Getenv("GITLAB_TOKEN")
 	}
 
 	if *token == "" {
@@ -436,7 +448,7 @@ func bulkMRTopicCommand() {
 	target := fs.String("target", "", "Target branch name (required)")
 	topic := fs.String("topic", "", "Topic name (required)")
 	gitlabURL := fs.String("gitlab-url", os.Getenv("GITLAB_BASE_URL"), "GitLab base URL (default: GITLAB_BASE_URL env)")
-	token := fs.String("token", os.Getenv("GITLAB_TOKEN"), "GitLab API token (default: GITLAB_TOKEN env)")
+	token := fs.String("token", "", "GitLab API token (default: GITLAB_TOKEN env)")
 	perPage := fs.Int("per-page", 100, "Number of projects to fetch per page")
 	verbose := fs.Bool("verbose", false, "Enable verbose logging")
 
@@ -487,6 +499,10 @@ func bulkMRTopicCommand() {
 		fmt.Fprintln(os.Stderr, "Error: GitLab URL must be provided via --gitlab-url or GITLAB_BASE_URL env")
 		fs.Usage()
 		os.Exit(1)
+	}
+
+	if *token == "" {
+		*token = os.Getenv("GITLAB_TOKEN")
 	}
 
 	if *token == "" {
