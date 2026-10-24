@@ -161,6 +161,8 @@ This automatically:
 - `--target`: Target branch name (required)
 - `--project`: Project path (can be repeated for multiple projects)
 - `--group`: Default group/namespace prefix (optional)
+- `--title`: Merge request title (`bulk-mr` only; default: `Merge <origin> into <target>`)
+- `--description`: Merge request description (`bulk-mr` only; default: auto-generated)
 
 ### Interactive Merge Command
 

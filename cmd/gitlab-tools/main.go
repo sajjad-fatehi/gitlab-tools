@@ -83,6 +83,8 @@ func bulkMRCommand() {
 	gitlabURL := fs.String("gitlab-url", os.Getenv("GITLAB_BASE_URL"), "GitLab base URL (default: GITLAB_BASE_URL env)")
 	token := fs.String("token", os.Getenv("GITLAB_TOKEN"), "GitLab API token (default: GITLAB_TOKEN env)")
 	group := fs.String("group", "", "Default group/namespace prefix (optional)")
+	title := fs.String("title", "", "Merge request title (default: \"Merge <origin> into <target>\")")
+	description := fs.String("description", "", "Merge request description (default: auto-generated)")
 	verbose := fs.Bool("verbose", false, "Enable verbose logging")
 
 	var projects arrayFlags
@@ -158,6 +160,8 @@ func bulkMRCommand() {
 		OriginBranch: *origin,
 		TargetBranch: *target,
 		Projects:     processedProjects,
+		Title:        *title,
+		Description:  *description,
 		Verbose:      *verbose,
 	}
 

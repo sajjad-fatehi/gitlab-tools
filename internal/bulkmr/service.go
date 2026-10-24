@@ -19,6 +19,8 @@ type Config struct {
 	OriginBranch string
 	TargetBranch string
 	Projects     []string
+	Title        string
+	Description  string
 	Verbose      bool
 }
 
@@ -196,9 +198,16 @@ func (s *Service) processProject(projectPath string) ProjectResult {
 		log.Printf("[%s] Found %d commit(s) with changes, creating merge request...", projectPath, len(compare.Commits))
 	}
 
-	title := fmt.Sprintf("Merge %s into %s", s.config.OriginBranch, s.config.TargetBranch)
-	description := fmt.Sprintf("This merge request was created automatically by gitlab-tools.\n\n**Source Branch**: `%s`\n**Target Branch**: `%s`",
-		s.config.OriginBranch, s.config.TargetBranch)
+	title := s.config.Title
+	if title == "" {
+		title = fmt.Sprintf("Merge %s into %s", s.config.OriginBranch, s.config.TargetBranch)
+	}
+
+	description := s.config.Description
+	if description == "" {
+		description = fmt.Sprintf("This merge request was created automatically by gitlab-tools.\n\n**Source Branch**: `%s`\n**Target Branch**: `%s`",
+			s.config.OriginBranch, s.config.TargetBranch)
+	}
 
 	mr, err := s.client.CreateMergeRequest(project.ID, s.config.OriginBranch, s.config.TargetBranch, title, description)
 	if err != nil {
