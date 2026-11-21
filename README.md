@@ -1,321 +1,89 @@
-# GitLab Tools
+# gitlab-tools
 
-A command-line toolkit for managing branches and merge requests on self-hosted GitLab instances.
+Command-line client for bulk merge requests and topic browsing on self-hosted GitLab (REST API v4). Written in Go.
 
-## Features
+## Install
 
-- **Bulk Merge Request Creation**: Create merge requests from an origin branch to a target branch across multiple repositories
-  - Draft-aware: Skips projects where source branch MRs are already in draft
-  - Idempotent: Safe to rerun without creating duplicates
-  - Per-project feedback with clear status reporting
-  - Bulk create MRs for all projects in a topic with a single command
-
-- **Topics Management**: Browse and explore GitLab topics
-  - List all available topics with project counts
-  - View all projects associated with a specific topic
-  - Beautiful terminal UI with colors and formatting
-
-## Installation
-
-### Download Pre-built Binaries
-
-Download the latest release for your platform from the [releases page](https://github.com/sajjad-fatehi/gitlab-tools/releases).
-
-#### Linux (AMD64)
+Requires Go (see `go.mod`).
 
 ```bash
-curl -L https://github.com/sajjad-fatehi/gitlab-tools/releases/latest/download/gitlab-tools-linux-amd64.tar.gz | tar xz
-sudo mv gitlab-tools-linux-amd64 /usr/local/bin/gitlab-tools
-chmod +x /usr/local/bin/gitlab-tools
+make install        # builds and copies to $(go env GOPATH)/bin/gitlab-tools
+gitlab-tools version
 ```
 
-#### Linux (ARM64)
+Other targets: `make build`, `make test`, `make deps`, `make lint`, `make release`, `make clean`.
 
-```bash
-curl -L https://github.com/sajjad-fatehi/gitlab-tools/releases/latest/download/gitlab-tools-linux-arm64.tar.gz | tar xz
-sudo mv gitlab-tools-linux-arm64 /usr/local/bin/gitlab-tools
-chmod +x /usr/local/bin/gitlab-tools
-```
-
-#### macOS (Intel)
-
-```bash
-curl -L https://github.com/sajjad-fatehi/gitlab-tools/releases/latest/download/gitlab-tools-darwin-amd64.tar.gz | tar xz
-sudo mv gitlab-tools-darwin-amd64 /usr/local/bin/gitlab-tools
-chmod +x /usr/local/bin/gitlab-tools
-```
-
-#### macOS (Apple Silicon)
+Pre-built binaries (linux/darwin amd64 + arm64, windows zip) are on the [releases page](https://github.com/sajjad-fatehi/gitlab-tools/releases):
 
 ```bash
 curl -L https://github.com/sajjad-fatehi/gitlab-tools/releases/latest/download/gitlab-tools-darwin-arm64.tar.gz | tar xz
 sudo mv gitlab-tools-darwin-arm64 /usr/local/bin/gitlab-tools
-chmod +x /usr/local/bin/gitlab-tools
 ```
 
-#### Windows
+## Config
 
-Download the appropriate `.zip` file for your architecture from the releases page and extract it to a directory in your PATH.
+| Variable | Example |
+|---|---|
+| `GITLAB_BASE_URL` | `https://gitlab.example.com` |
+| `GITLAB_TOKEN` | personal access token with the `api` scope |
 
-### Build from Source
-
-If you prefer to build from source:
+Create the token under **User Settings → Access Tokens**. Variables are read from the environment only; there is no env file. `.env.example` shows the values to export.
 
 ```bash
-git clone https://github.com/sajjad-fatehi/gitlab-tools.git
-cd gitlab-tools
-go build -o gitlab-tools ./cmd/gitlab-tools
+export GITLAB_BASE_URL=https://gitlab.example.com
+export GITLAB_TOKEN=...
+gitlab-tools topics
 ```
 
-**Requirements:**
+## Global flags
 
-- Go 1.23 or later
-- Access to a self-hosted GitLab instance
-- GitLab personal access token with API access
+Accepted by `topics`, `projects`, `bulk-mr` and `bulk-mr-topic`:
 
-## Configuration
+- `-gitlab-url <url>` GitLab base URL (default: `GITLAB_BASE_URL`)
+- `-token <token>` API token (default: `GITLAB_TOKEN`)
+- `-verbose` verbose logging
 
-### Environment Variables
+`merge` takes only `-target` and `-topic` and reads `GITLAB_BASE_URL` / `GITLAB_TOKEN` from the environment.
 
-- `GITLAB_BASE_URL`: Base URL for your GitLab instance (e.g., `https://gitlab.example.com`)
-- `GITLAB_TOKEN`: Personal access token for GitLab API authentication
+Flags are single-dash Go flags (`-origin`, also accepted as `--origin`).
 
-### Personal Access Token
-
-Create a token in GitLab with the following scopes:
-
-- `api`: Full API access (required for reading projects, branches, and creating merge requests)
-
-Navigate to: **User Settings → Access Tokens**
-
-## Usage
-
-### List All Topics
-
-View all available GitLab topics with their project counts:
+## Commands
 
 ```bash
-export GITLAB_BASE_URL="https://gitlab.example.com"
-export GITLAB_TOKEN="your-personal-access-token"
-
-./gitlab-tools topics
+gitlab-tools topics                                                   # topics with project counts
+gitlab-tools topics -page 2 -per-page 20                              # default -per-page 50
+gitlab-tools projects -topic backend                                  # projects of a topic; -page, -per-page (default 50)
+gitlab-tools bulk-mr -origin op-stage -target op-rc -project group/repo-a -project group/repo-b
+gitlab-tools bulk-mr -origin op-stage -target op-rc -group group -project repo-a   # -group: default namespace prefix
+gitlab-tools bulk-mr -origin op-stage -target op-rc -project group/repo-a -title "Release" -description "Notes"
+gitlab-tools bulk-mr-topic -origin op-stage -target op-rc -topic backend           # -per-page default 100
+gitlab-tools merge -target op-stage -topic backend                    # interactive, needs a terminal
+gitlab-tools version
+gitlab-tools <command> --help
 ```
 
-With pagination:
+`bulk-mr` options: `-origin` and `-target` are required, `-project` is repeatable, `-title` defaults to `Merge <origin> into <target>`, `-description` is auto-generated when omitted. `bulk-mr-topic` takes the same branch flags plus `-topic`, but no `-title` / `-description`.
 
-```bash
-./gitlab-tools topics --page 2 --per-page 20
-```
+Per project, `bulk-mr` and `bulk-mr-topic` check that both branches exist, look for an open MR for the same pair, skip when only draft MRs exist, and create an MR otherwise. Reruns are safe. Each project gets one status line, then a summary:
 
-### List Projects by Topic
+- `CREATED` new MR created
+- `SKIPPED_EXISTS` open non-draft MR already exists
+- `SKIPPED_DRAFT` only draft MRs exist for the pair
+- `SKIPPED_NO_CHANGE` no changes between the branches
+- `SKIPPED_NO_BRANCH` origin or target branch missing
+- `ERROR` API or network error (exit code 1)
 
-View all projects that belong to a specific topic:
-
-```bash
-./gitlab-tools projects --topic backend
-```
-
-With pagination:
-
-```bash
-./gitlab-tools projects --topic backend --page 1 --per-page 30
-```
-
-### Bulk Merge Request Creation
-
-#### For Specific Projects
-
-Create merge requests from an origin branch to a target branch across multiple projects:
-
-```bash
-export GITLAB_BASE_URL="https://gitlab.example.com"
-export GITLAB_TOKEN="your-personal-access-token"
-
-./gitlab-tools bulk-mr \
-  --origin op-stage \
-  --target op-rc \
-  --project group/repo-a \
-  --project group/repo-b
-```
-
-#### For All Projects in a Topic
-
-Create merge requests for all projects that have a specific topic:
-
-```bash
-./gitlab-tools bulk-mr-topic \
-  --origin op-stage \
-  --target op-rc \
-  --topic backend
-```
-
-This automatically:
-
-- Fetches all projects with the specified topic
-- Creates MRs for each project
-- Provides the same draft-aware and idempotent behavior
-
-#### Command Options
-
-- `--origin`: Source branch name (required)
-- `--target`: Target branch name (required)
-- `--project`: Project path (can be repeated for multiple projects)
-- `--group`: Default group/namespace prefix (optional)
-- `--title`: Merge request title (`bulk-mr` only; default: `Merge <origin> into <target>`)
-- `--description`: Merge request description (`bulk-mr` only; default: auto-generated)
-
-### Interactive Merge Command
-
-Interactively merge open, non-draft merge requests targeting a specific branch across all projects in a topic:
-
-```bash
-./gitlab-tools merge \
-  --target op-stage \
-  --topic backend
-```
-
-This command will:
-
-1. **Fetch all projects** with the specified topic
-2. **Find open MRs** targeting the specified branch in each project
-3. **Filter out draft MRs** automatically
-4. **Display MR details** including:
-   - Project name
-   - MR title
-   - Source and target branches
-   - Web URL for reference
-5. **Prompt for confirmation** for each MR (y/n)
-6. **Merge accepted MRs** automatically
-7. **Show a summary** of merged, skipped, and failed operations
-
-#### Example Session
-
-```console
-📦 Fetching projects for topic: backend
-✓ Found 12 projects
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Project: example/backend-api
-MR Title: feat: Add new authentication endpoint
-Branches: feature/auth → op-stage
-URL: https://git.example.com/example/backend-api/-/merge_requests/42
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Merge this MR? (y/n): y
-✓ Successfully merged!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 Summary
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Merged:  3
-⊘ Skipped: 1
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-#### Merge Command Options
-
-- `--target`: Target branch to merge into (required)
-- `--topic`: Topic to filter projects (required)
-- `--gitlab-url`: Override GitLab base URL (optional, uses `GITLAB_BASE_URL` env var)
-- `--token`: Override GitLab token (optional, uses `GITLAB_TOKEN` env var)
-- `--verbose`: Enable detailed logging (optional)
-
-#### Behavior
-
-The tool will:
-
-1. **Validate branches**: Check that both origin and target branches exist
-2. **Check existing MRs**: Look for open merge requests with the same source/target pair
-3. **Skip draft contexts**: If only draft MRs exist, skip creation
-4. **Create MRs**: Only create when no open MR exists or only closed/merged MRs exist
-5. **Report results**: Show per-project status and summary
-
-#### Status Codes
-
-- `CREATED`: New merge request successfully created
-- `SKIPPED_EXISTS`: Open non-draft MR already exists
-- `SKIPPED_DRAFT`: Only draft MRs exist for this branch pair
-- `SKIPPED_NO_CHANGE`: No changes between source and target branches
-- `SKIPPED_NO_BRANCH`: Origin or target branch doesn't exist
-- `ERROR`: API or network error occurred
-
-#### Example Output
+A merge request is a draft if its title starts with `Draft:` or `WIP:` (case-insensitive) or GitLab reports it as draft.
 
 ```text
-Processing 3 projects...
-
 [repo-a] CREATED
   MR !42: https://gitlab.example.com/group/repo-a/-/merge_requests/42
-
 [repo-b] SKIPPED_EXISTS
   Open MR already exists: !15
-
-[repo-c] SKIPPED_DRAFT
-  Draft MR exists: !8 (Draft: Merge op-stage into op-rc)
-
-Summary:
-  Created: 1
-  Skipped (exists): 1
-  Skipped (draft): 1
-  Skipped (no changes): 0
-  Skipped (no branch): 0
-  Errors: 0
-
-✓ Completed successfully
 ```
 
-### Draft Detection
+`merge` lists the topic's projects, finds open non-draft MRs targeting `-target`, shows project, title, branches and URL, and asks `Merge this MR? (y/n)` for each. Accepted MRs are merged, then a summary of merged, skipped and failed counts is printed. It is interactive, so run it in a terminal.
 
-A merge request is considered a draft if:
+## Out of scope
 
-- The title starts with `Draft:` or `WIP:` (case-insensitive)
-- GitLab API indicates draft status via the `draft` field
-
-## Project Structure
-
-```text
-gitlab-tools/
-├── cmd/
-│   └── gitlab-tools/
-│       └── main.go           # CLI entry point
-├── internal/
-│   ├── gitlab/
-│   │   ├── client.go         # GitLab API client
-│   │   └── types.go          # Domain models
-│   └── bulkmr/
-│       └── service.go        # Bulk MR creation logic
-├── go.mod
-└── README.md
-```
-
-## Development
-
-### Running Tests
-
-```bash
-go test ./...
-```
-
-### Running with Verbose Output
-
-```bash
-./gitlab-tools bulk-mr --verbose --origin op-stage --target op-rc --project mygroup/myrepo
-```
-
-## Limitations
-
-- Requires GitLab API v4 (most modern self-hosted instances)
-- Sequential processing (no parallelization in initial version)
-- Basic MR configuration (no custom labels, assignees, or milestones)
-
-## Future Enhancements
-
-Planned features for this toolkit:
-
-- Branch cleanup commands
-- MR status reporting
-- Batch MR updates (labels, assignees)
-- Pipeline management
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+Branch cleanup, MR status reports, batch MR updates (labels, assignees, milestones), pipelines, parallel processing, GitLab versions without API v4.
