@@ -84,6 +84,30 @@ A merge request is a draft if its title starts with `Draft:` or `WIP:` (case-ins
 
 `merge` lists the topic's projects, finds open non-draft MRs targeting `-target`, shows project, title, branches and URL, and asks `Merge this MR? (y/n)` for each. Accepted MRs are merged, then a summary of merged, skipped and failed counts is printed. It is interactive, so run it in a terminal.
 
+## AI agent skill
+
+`skills/gitlab-tools/` is an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) (`SKILL.md` plus `references/`) that teaches an AI coding agent to drive this CLI: prerequisite check, read-only discovery, bulk MR recipes, and safety rules (never print the token, run `bulk-mr` / `bulk-mr-topic` only on explicit request, never run the interactive `merge`).
+
+Install for Claude Code, from a clone of this repo. Personal (all projects):
+
+```bash
+mkdir -p ~/.claude/skills
+cp -R skills/gitlab-tools ~/.claude/skills/gitlab-tools
+# or keep it in sync with the repo:
+ln -s "$PWD/skills/gitlab-tools" ~/.claude/skills/gitlab-tools
+```
+
+Project-local (commit it with the project):
+
+```bash
+mkdir -p .claude/skills
+cp -R /path/to/gitlab-tools/skills/gitlab-tools .claude/skills/gitlab-tools
+```
+
+Restart the agent session so it picks up the skill. It loads when you mention gitlab-tools, bulk merge requests or GitLab topics. The agent still needs the `gitlab-tools` binary on `PATH` and `GITLAB_BASE_URL` / `GITLAB_TOKEN` exported (see [Config](#config)).
+
+Other agents that read `SKILL.md` folders: copy `skills/gitlab-tools` into the skills directory your agent documents. The files are plain Markdown with `name` and `description` frontmatter; for an agent without skill support, paste `SKILL.md` into its instructions file.
+
 ## Out of scope
 
 Branch cleanup, MR status reports, batch MR updates (labels, assignees, milestones), pipelines, parallel processing, GitLab versions without API v4.
